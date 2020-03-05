@@ -1,0 +1,97 @@
+---
+title: "Intro to Chemotaxis"
+output:
+word_document: default
+html_document:
+df_print: paged
+pdf_document: default
+---
+
+## Chemotaxis Trial 1
+
+
+Intro intro blah blah
+
+Load the tidyverse:
+```{r}
+library(tidyverse)
+
+```
+
+
+First let's put our measurements into a data frame. We can do this by creating vectors for each column, provided that vector components are in the correct order (e.g. all measurements for the first dish are in the first position of each vector, all for the second are in the second position, etc.).
+
+
+```{r}
+
+# In this example we have plates a, b, and c. In plate a, the A quadrant has 10, B has 8, C has 3, and D has 4. The measurements for the other plates follow a similar pattern.
+
+strain<-c("N2", "N2", "N2")
+plate<-c("a","b","c")
+A<-c(10, 8, 10)
+B<-c(8, 7, 9)
+C<-c(3, 2, 5)
+D<-c(4, 4, 4)
+
+ df <- data.frame(strain, plate,A,B,C,D)       # df is a data frame
+ df
+
+```
+
+
+Now we can use this data to generate the Chemotaxis Index for each plate. The formula is:
+
+CI= ((A+B)-(C+D))/(A+B+C+D)
+
+We can add a column to our data frame by using the "mutate" function. "Mutate" allows you to create a new column of values based upon data already in the data frame. So using our example above:
+
+```{r}
+
+
+df<-mutate(.data=df, CI=((A+B)-(C+D))/(A+B+C+D))
+
+#print out our updated df dataframe
+df
+
+
+
+
+
+```
+
+
+Now that we have the Chemotaxis Index for each plate, we can use group by/summarise to calculate the average, standard deviation, n, and upper and lower confidence intervals:
+
+### Calculate means for the different strains.
+
+```{r}
+meanCI<-df %>% group_by(strain) %>% summarise(avg=mean(CI), StandardDeviation=sd(CI), n=n(), upperCI=avg+((qnorm(0.975)*StandardDeviation)/sqrt(n)), lowerCI=avg-((qnorm(0.975)*StandardDeviation)/sqrt(n)))
+
+meanCI
+```
+### Now make a barplot using ggplot
+```{r}
+ggplot(data=meanCI, mapping=aes(x=strain, y=avg))+geom_bar(stat="identity")
+```
+# Improve the bargraph with title and labels and pick a theme
+```{r}
+ggplot(data=meanCI, mapping=aes(x=strain, y=avg))+geom_bar(stat="identity")+labs(title="Chemotaxis index of C. elegans strains to 1% Isoamyl alcohol after 1 hour", x="C elegans strain", y="Chemotaxis Index", fill = "Strain") + theme_minimal()
+```
+
+
+
+### Plot a bar graph with SEM used for error bars
+
+```{r}
+CIPlot <- ggplot(data=meanCI, aes(strain, avg)) +
+geom_col() +
+geom_errorbar(aes(ymin = lowerCI, ymax = upperCI), width=0.2)
+
+CIPlot + labs(title="Chemotaxis index of C. elegans strains to 1% Isoamyl alcohol after 1 hour",y="Chemotaxis Index (SEM)", x = "Strain") + theme_minimal()
+```
+### Save the plot
+```{r}
+ggsave("plot.png", height=5, width=8)
+
+
+```
